@@ -1,5 +1,3 @@
-// Generate: browserify app.js -o bundle.js
-
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 
 },{}],2:[function(require,module,exports){
@@ -1247,6 +1245,57 @@ quest.on('unitJoin', function(unit) {
 quest.on('unitLeft', function() {
 	// Unit remove at Viewport
 });
+
+quest.on('unitUpdate', function(unit) {
+	// Unit Update
+	$('#unit_'+unit.id).css({
+		left: unit.pos.x,
+		top: unit.pos.y
+	});
+	console.log(unit.id);
+});
+
+// Gameloop -> Call Quest API -> Call Server
+var frameCount = 0;
+function gameloop() {
+	frameCount++;
+	var myUnit = $('#unit_'+quest.playerId);
+	// Send 3 times the second at Server
+	if (frameCount % 10 == 0 && myUnit) {
+		quest.movement({x: $(myUnit).css('left').replace("px", ""), y: $(myUnit).css('top').replace("px", "")}, 0, 0);
+	}
+}
+setInterval(gameloop, 1000/30);
+
+// User Movement
+// Only for Debug
+
+$("body").keypress(function(event) {
+	// Break if no own Unit
+	if (!quest.playerId)
+		return;
+
+	if (event.keyCode == 119) {
+		// Up
+		$('#unit_'+quest.playerId).css({top: "-=2"});
+	} else if (event.keyCode == 115) {
+		// Down
+		$('#unit_'+quest.playerId).css({top: "+=2"});
+	}
+
+	if (event.keyCode == 97) {
+		// Left
+		$('#unit_'+quest.playerId).css({left: "-=2"});
+	} else if (event.keyCode == 100) {
+		// Right
+		$('#unit_'+quest.playerId).css({left: "+=2"});
+	}
+	// keycodes:
+	// 119 = w
+	// 115 = s
+	// 97 = a
+	// 100 = d
+});
 },{"./lib/quest.js":10}],9:[function(require,module,exports){
 // Web Socket Handling
 
@@ -1375,6 +1424,7 @@ function Quest() {
 
 	// Callbacks for Methods
 	this.callbacks = {};
+	this.playerId = null;
 
 	this.Client = new Connection({pack: new Protobuf});
 
@@ -1394,6 +1444,7 @@ function Quest() {
 	this.Client.on('LoginResponse', function(data) {
 		if (self.callbacks.hasOwnProperty('login')) {
 			// Callback exist:
+			self.playerId = data.getPlayerId();
 			self.callbacks.login(data.getCode(), data.getWorldName(), data.getWorldPlayers(), data.getPlayerId());
 			delete self.callbacks.login;
 		}
@@ -1411,6 +1462,11 @@ function Quest() {
 		for (var j = 0; j < keys.length; j++) {
 			self.emit('unitLeft', data.unitLeft[keys[i]]);
 		}
+		keys = Object.keys(data.unitUpdate);
+		for (var o = 0; o < keys.length; o++) {
+			var unit = data.unitUpdate[keys[o]];
+			self.emit('unitUpdate', { id: unit.getId(), pos: {x: unit.posX, y: unit.posY}, direction: unit.direction, velocity: unit.velocity});
+		}
 	});
 }
 
@@ -1424,6 +1480,12 @@ Quest.prototype.login = function(username, password, viewportSize, callback) {
 
 	this.callbacks['login'] = callback;
 	this.Client.send('LoginRequest', {username: username, password: password, viewportSizeW: viewportSize.w, viewportSizeH: viewportSize.h});
+}
+
+// Send Movement
+Quest.prototype.movement = function(pos, direction, velocity) {
+	console.log({posX: parseInt(pos.x), posY: parseInt(pos.y), direction: direction, velocity: velocity});
+	this.Client.send('UnitMovement', {posX: parseInt(pos.x), posY: parseInt(pos.y), direction: direction, velocity: velocity});
 }
 
 module.exports = Quest;
@@ -1440,6 +1502,7 @@ ProtoBufJs.loadProtoFile(__dirname+"/proto/message.proto", builder);
 ProtoBufJs.loadProtoFile(__dirname+"/proto/test.proto", builder);
 ProtoBufJs.loadProtoFile(__dirname+"/proto/login.proto", builder);
 ProtoBufJs.loadProtoFile(__dirname+"/proto/aoi.proto", builder);
+ProtoBufJs.loadProtoFile(__dirname+"/proto/movement.proto", builder);
 
 // Build Protobuf Files
 var Quest = builder.build("quest"),
