@@ -3,6 +3,7 @@ package quest;
 message AoI {
 	repeated Unit unitJoin = 1;
 	repeated int32 unitLeft = 2;
+	repeated UnitUpdate unitUpdate = 3;
 }
 
 message Unit {
@@ -10,4 +11,12 @@ message Unit {
 	required int32 posX = 2;
 	required int32 posY = 3;
 	required string name = 4;
+}
+
+message UnitUpdate {
+	required int32 id = 1;
+	required int32 posX = 2;
+	required int32 posY = 3;
+	required float direction = 4;
+	required float velocity = 5;
 }

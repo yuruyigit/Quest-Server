@@ -72,6 +72,14 @@ Code | Status
 4    | Bad Words at Username
 5    | Username Banned
 
+### Movement
+
+```js
+Quest.prototype.movement = function(pos, direction, velocity) {
+```
+
+Send to Server your Movement.
+
 ## Events
 
 ### connect

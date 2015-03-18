@@ -37,6 +37,13 @@ World.prototype.init = function(QuestServer, done) {
 	QuestServer.on('loop:tick', function(tick) {
 		self.update(QuestServer, tick);
 	});
+	// user movement
+	QuestServer.on('client:UnitMovement', function(data) {
+		// Update Unit
+		data.client.unit.pos = {x: data.posX, y: data.posY};
+		Log.info("User `"+data.client.unit.name+"` moved!");
+		// ToDo: Validate User Input
+	});
 
 	// Parse Map File
 	tmx.parseFile(self.options.tmx, function(err, map) {
@@ -137,6 +144,7 @@ World.prototype.update = function(QuestServer, tick) {
 
 		var joinAoI = { units: [] };
 		var leftAoI = { units: [] };
+		var updateAoI = { units: [] }; // ToDo: Change later: Only new pos send!
 
 		// Find all other Clients at Viewport
 		for (var j = 0; j < keys.length; j++) {
@@ -158,6 +166,8 @@ World.prototype.update = function(QuestServer, tick) {
 						name: other.name,
 					});
 				}
+
+				updateAoI.units.push({ id: other.id, posX: other.pos.x, posY: other.pos.y, direction: 0, velocity: 0 });
 			} else if (unit.aoi.units.hasOwnProperty(other.id)) {
 				// Out of Viewport
 				leftAoI.units.push(other.id);
@@ -168,8 +178,8 @@ World.prototype.update = function(QuestServer, tick) {
 			leftAoI.units = leftAoI.units.concat(removedUnits);
 
 		// Send Client all new UoI's and Removed UoI's
-		if (joinAoI.units.length > 0 || leftAoI.units.length > 0) {
-			QuestServer.components.connection.send('AoI', {unitJoin: joinAoI.units, unitLeft: leftAoI.units }, unit.client);
+		if (joinAoI.units.length > 0 || leftAoI.units.length > 0 || updateAoI.units.length > 0) {
+			QuestServer.components.connection.send('AoI', {unitJoin: joinAoI.units, unitLeft: leftAoI.units, unitUpdate: updateAoI.units }, unit.client);
 		}
 	}
 
