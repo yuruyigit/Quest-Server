@@ -9,6 +9,7 @@ ProtoBufJs.loadProtoFile(__dirname+"/proto/message.proto", builder);
 ProtoBufJs.loadProtoFile(__dirname+"/proto/test.proto", builder);
 ProtoBufJs.loadProtoFile(__dirname+"/proto/login.proto", builder);
 ProtoBufJs.loadProtoFile(__dirname+"/proto/aoi.proto", builder);
+ProtoBufJs.loadProtoFile(__dirname+"/proto/movement.proto", builder);
 
 // Build Protobuf Files
 var Quest = builder.build("quest"),

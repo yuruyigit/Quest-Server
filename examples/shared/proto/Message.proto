@@ -6,6 +6,7 @@ message Message {
 		LoginRequest = 2;
 		LoginResponse = 3;
 		AoI = 4;
+		UnitMovement = 5;
 	}
 	required MessageType type = 1;
 	required bytes data = 2;
