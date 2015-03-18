@@ -1,0 +1,12 @@
+package quest;
+
+message Message {
+	enum MessageType {
+		Test = 1;
+		LoginRequest = 2;
+		LoginResponse = 3;
+		AoI = 4;
+	}
+	required MessageType type = 1;
+	required bytes data = 2;
+}

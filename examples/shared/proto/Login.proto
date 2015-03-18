@@ -1,0 +1,23 @@
+package quest;
+
+message LoginRequest {
+	required string username = 1;
+	optional string password = 2;
+	required int32 viewportSizeW = 3;
+	required int32 viewportSizeH = 4;
+}
+
+message LoginResponse {
+	enum CodeType {
+		OK = 1;
+		ERR_SERVER_FULL = 2;
+		ERR_DUPLICATE_NAME = 3;
+		ERR_BAD_WORDS = 4;
+		ERR_BANNED = 5;
+	}
+
+	required CodeType code = 1;
+	optional string worldName = 2;
+	optional int32 worldPlayers = 3;
+	optional int32 playerId = 4;
+}

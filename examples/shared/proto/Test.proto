@@ -1,0 +1,5 @@
+package quest;
+
+message Test {
+	required string text = 1;
+}
