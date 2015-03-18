@@ -54,6 +54,11 @@ function Quest() {
 			self.emit('unitUpdate', { id: unit.getId(), pos: {x: unit.posX, y: unit.posY}, direction: unit.direction, velocity: unit.velocity});
 		}
 	});
+
+	// Helper for <= ie8 http://stackoverflow.com/questions/221294/how-do-you-get-a-timestamp-in-javascript
+	if (!Date.now) {
+    	Date.now = function() { return new Date().getTime(); }
+	}
 }
 
 util.inherits(Quest, events.EventEmitter);
@@ -70,8 +75,8 @@ Quest.prototype.login = function(username, password, viewportSize, callback) {
 
 // Send Movement
 Quest.prototype.movement = function(pos, direction, velocity) {
-	console.log({posX: parseInt(pos.x), posY: parseInt(pos.y), direction: direction, velocity: velocity});
-	this.Client.send('UnitMovement', {posX: parseInt(pos.x), posY: parseInt(pos.y), direction: direction, velocity: velocity});
+	console.log({timestamp: Math.floor(Date.now() / 1000), posX: parseInt(pos.x), posY: parseInt(pos.y), direction: direction, velocity: velocity});
+	this.Client.send('UnitMovement', {timestamp: Math.floor(Date.now() / 1000), posX: parseInt(pos.x), posY: parseInt(pos.y), direction: direction, velocity: velocity});
 }
 
 module.exports = Quest;

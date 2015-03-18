@@ -85,5 +85,4 @@ var server = new QuestServer()
 - Add Unit Movement
 - Add Movement Collision Control
 - Add NPC's
-
-
+- Send to Server Velocity X and Y!!!!

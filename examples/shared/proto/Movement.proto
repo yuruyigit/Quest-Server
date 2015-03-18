@@ -1,8 +1,9 @@
 package quest;
 
 message UnitMovement {
-	required int32 posX = 1;
-	required int32 posY = 2;
-	required float direction = 3;
-	required float velocity = 4;
+	required int32 timestamp = 1;
+	required int32 posX = 2;
+	required int32 posY = 3;
+	required float direction = 4;
+	required float velocity = 5;
 }
