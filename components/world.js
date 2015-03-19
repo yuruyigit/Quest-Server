@@ -41,6 +41,8 @@ World.prototype.init = function(QuestServer, done) {
 	QuestServer.on('client:UnitMovement', function(data) {
 		// Update Unit
 		data.client.unit.pos = {x: data.posX, y: data.posY};
+		data.client.unit.velocity = {x: data.velocityX, y: data.velocityY};
+		
 //		Log.info("User `"+data.client.unit.name+"` moved!");
 		// ToDo: Validate User Input
 	});
@@ -106,6 +108,8 @@ World.prototype.addClient = function(client) {
 	var unit = {
 		id: client.id,
 		pos: {x: Math.floor((Math.random() * 100) + 1), y: 0},
+		direction: 0,
+		velocity: {x: 0, y: 0},
 		name: client.username,
 		client: client,
 		aoi: { units: {} }
@@ -163,11 +167,11 @@ World.prototype.update = function(QuestServer, tick) {
 						id: other.id,
 						posX: other.pos.x,
 						posY: other.pos.y,
-						name: other.name,
+						name: other.name
 					});
 				}
 
-				updateAoI.units.push({ id: other.id, posX: other.pos.x, posY: other.pos.y, direction: 0, velocityX: 0, velocityY: 0 });
+				updateAoI.units.push({ id: other.id, posX: other.pos.x, posY: other.pos.y, direction: 0, velocityX: other.velocity.x, velocityY: other.velocity.y });
 			} else if (unit.aoi.units.hasOwnProperty(other.id)) {
 				// Out of Viewport
 				leftAoI.units.push(other.id);

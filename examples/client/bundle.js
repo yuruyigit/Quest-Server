@@ -1287,7 +1287,7 @@ DebugClient.prototype._run = function() {
 	for (var i = 0; i < keys.length; i++) {
 		var unit = self.units[keys[i]];
 
-		console.log(unit.name + ": " + unit.velocity);
+		console.log(unit.name + ": " + unit.velocity.x);
 
 		if (unit.velocity.x != 0) {
 			unit.pos.x += unit.velocity.x;
@@ -1306,7 +1306,7 @@ DebugClient.prototype._run = function() {
 
 	// Send 3 times the second at Server
 	if (self.frameCount % 10 == 0 && self.playerUnit) {
-		// ToDo: Send to Server Velocity X and Y!!!!
+		console.log(self.playerUnit.velocity);
 		self.quest.movement(self.playerUnit.pos, self.playerUnit.direction, self.playerUnit.velocity);
 	}
 
