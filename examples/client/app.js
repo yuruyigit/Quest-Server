@@ -27,18 +27,23 @@ function DebugClient() {
 		self._tryLogin();
 	});
 
+	self.quest.on('close', function() {
+		clearInterval(self.loop);
+		self.isConnect = false;
+	});
+
 	// Unit join the Viewport (Area of Interest)
-	quest.on('unitJoin', function(unit) {
+	self.quest.on('unitJoin', function(unit) {
 		self._unitJoin(unit);
 	});
 
 	// Unit left the Viewport (Area of Interest)
-	quest.on('unitLeft', function(id) {
+	self.quest.on('unitLeft', function(id) {
 		self._unitLeft(id);
 	});
 
 	// Unit has e.g. new Position...
-	quest.on('unitUpdate', function(unit) {
+	self.quest.on('unitUpdate', function(unit) {
 		self._unitUpdate(unit);
 	});
 }
@@ -46,7 +51,9 @@ function DebugClient() {
 DebugClient.prototype._startLoop = function() {
 	var self = this;
 
-	setInterval(self._run, 1000/30);
+	self.loop = setInterval(function() {
+		self._run();
+	}, 1000/30);
 }
 
 // Simple GameLoop
@@ -55,10 +62,16 @@ DebugClient.prototype._run = function() {
 
 	self.frameCount++;
 
+	if (!self.units || self.units.length == 0)
+		return;
+
 	// Update all Units:
 	var keys = Object.keys(self.units);
+
 	for (var i = 0; i < keys.length; i++) {
 		var unit = self.units[keys[i]];
+
+		console.log(unit.name + ": " + unit.velocity);
 
 		if (unit.velocity.x != 0) {
 			unit.pos.x += unit.velocity.x;
@@ -67,21 +80,18 @@ DebugClient.prototype._run = function() {
 			unit.pos.y += unit.velocity.y;
 		}
 
-		if (unit.velocity.x != 0 || unit.velocity.y != 0) {
-			// Unit is changed:
-			$(unit.gameObject).css({
-				left: unit.pos.x,
-				top: unit.pos.y
-			});
-
-		}
+		// Unit is changed:
+		$(unit.gameObject).css({
+			left: unit.pos.x,
+			top: unit.pos.y
+		});
 
 	}
 
 	// Send 3 times the second at Server
 	if (self.frameCount % 10 == 0 && self.playerUnit) {
 		// ToDo: Send to Server Velocity X and Y!!!!
-		self.quest.movement(self.playerUnit.pos, self.playerUnit.direction, 0);
+		self.quest.movement(self.playerUnit.pos, self.playerUnit.direction, self.playerUnit.velocity);
 	}
 
 }
@@ -91,11 +101,13 @@ DebugClient.prototype._tryLogin = function() {
 
 	var username = prompt("Please enter your name", "Harry Potter");
 
-	self.quest.login(username, '1234', {w: self.viewport.width(), h: self.viewport.height()}, function(code, worldName, worldPlayer, playerId) {
+	self.quest.login(username, '1234', {w: $(self.viewport).width(), h: $(self.viewport).height()}, function(code, worldName, worldPlayer, playerId) {
+		console.log(code);
 		// User Feedback
 		if (code == 1) {
 			self.isConnect = true;
 			console.log(worldName+" say Welcome to you");
+			self._startLoop();
 		} else if (code == 2) {
 			alert("Server Full!");
 		} else if (code == 3) {
@@ -116,6 +128,9 @@ DebugClient.prototype._unitJoin = function(unit) {
 
 	console.log(unit.name+' joined your Viewport!');
 
+	unit.direction = 0;
+	unit.velocity = {x: 0, y: 0};
+
 	// Create new Player Object
 	var obj = $('<div class="unit"></div>');
 	$(obj).attr('id', 'unit_'+unit.id);
@@ -123,9 +138,7 @@ DebugClient.prototype._unitJoin = function(unit) {
 	$(obj).css({
 		position: 'absolute',
 		left: unit.pos.x,
-		top: unit.pos.y,
-		direction: 0,
-		velocity: {x: 0, y: 0}
+		top: unit.pos.y
 	});
 
 	unit.gameObject = $(obj);
@@ -136,8 +149,9 @@ DebugClient.prototype._unitJoin = function(unit) {
 	self.viewport.append(obj);
 
 	// If Unit from this Player?
+	console.log(self.quest.playerId+"=="+unit.id);
 	if (self.quest.playerId == unit.id)
-		self.playerUnit = $(obj);
+		self.playerUnit = unit;
 }
 
 DebugClient.prototype._unitLeft = function(id) {
@@ -159,66 +173,79 @@ DebugClient.prototype._unitUpdate = function(unit) {
 	var self = this;
 
 	// ToDo: Own Unit override
-	if (unit.id == quest.playerId)
+	if (unit.id == self.quest.playerId)
 		return;
 
 	// Exist the Unit in the local Storage?
-	if (!units.hasOwnProperty(unit.id)) {
+	if (!self.units.hasOwnProperty(unit.id)) {
 		return;
 	}
 
 	// GameObject update by the Gameloop
-	units[unit.id].pos = unit.pos;
-	units[unit.id].direction = unit.direction;
-	units[unit.id].velocity = unit.velocity;
+	self.units[unit.id].pos = unit.pos;
+	self.units[unit.id].direction = unit.direction;
+	self.units[unit.id].velocity = unit.velocity;
+
+	// Unit is changed:
+	$(self.units[unit.id].gameObject).css({
+		left: unit.pos.x,
+		top: unit.pos.y
+	});
 }
 
-var client = new DebugClient();
+$( document ).ready(function() {
+    console.log( "ready!" );
 
-$("body").keydown(function(event) {
-	// Player has no Unit
-	if (!client.playerUnit)
-		return;
+	var client = new DebugClient();
 
-	// Set the velocity
-	if (event.keyCode == 119) {
-		// Up
-		units[quest.playerId].velocity.y = -2;
-	} else if (event.keyCode == 115) {
-		// Down
-		units[quest.playerId].velocity.y = 2;
-	}
+	$(document).keydown(function(event) {
+		//console.log(event);
+		// Player has no Unit
+		if (!client.playerUnit) {
+			console.log("Error: No Player Unit!");
+			return;
+		}
 
-	if (event.keyCode == 97) {
-		// Left
-		units[quest.playerId].velocity.x = -2;
-	} else if (event.keyCode == 100) {
-		// Right
-		units[quest.playerId].velocity.x = 2;
-	}
+		// Set the velocity
+		if (event.keyCode == 87) {
+			// Up
+			client.playerUnit.velocity.y = -2;
+		} else if (event.keyCode == 83) {
+			// Down
+			client.playerUnit.velocity.y = 2;
+		}
 
-});
+		if (event.keyCode == 65) {
+			// Left
+			client.playerUnit.velocity.x = -2;
+		} else if (event.keyCode == 68) {
+			// Right
+			client.playerUnit.velocity.x = 2;
+		}
 
-$("body").keyup(function(event) {
-	// Player has no Unit
-	if (!client.playerUnit)
-		return;
+	});
 
-	// Set the velocity
-	if (event.keyCode == 119) {
-		// Up
-		units[quest.playerId].velocity.y = 0;
-	} else if (event.keyCode == 115) {
-		// Down
-		units[quest.playerId].velocity.y = 0;
-	}
+	$(document).keyup(function(event) {
+		// Player has no Unit
+		if (!client.playerUnit)
+			return;
 
-	if (event.keyCode == 97) {
-		// Left
-		units[quest.playerId].velocity.x = 0;
-	} else if (event.keyCode == 100) {
-		// Right
-		units[quest.playerId].velocity.x = 0;
-	}
+		// Set the velocity
+		if (event.keyCode == 87) {
+			// Up
+			client.playerUnit.velocity.y = 0;
+		} else if (event.keyCode == 83) {
+			// Down
+			client.playerUnit.velocity.y = 0;
+		}
 
+		if (event.keyCode == 65) {
+			// Left
+			client.playerUnit.velocity.x = 0;
+		} else if (event.keyCode == 68) {
+			// Right
+			client.playerUnit.velocity.x = 0;
+		}
+
+	});
 });

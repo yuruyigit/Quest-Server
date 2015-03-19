@@ -5,5 +5,6 @@ message UnitMovement {
 	required int32 posX = 2;
 	required int32 posY = 3;
 	required float direction = 4;
-	required float velocity = 5;
+	required float velocityX = 5;
+	required float velocityY = 6;
 }

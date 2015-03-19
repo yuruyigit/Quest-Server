@@ -1214,92 +1214,258 @@ function hasOwnProperty(obj, prop) {
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"./support/isBuffer":6,"_process":5,"inherits":3}],8:[function(require,module,exports){
-// Use:
+// Client
+
+// Use Quest Client API
 var Quest = require('./lib/quest.js');
 
-var quest = new Quest();
+function DebugClient() {
+	var self = this;
 
-quest.on('connect', function() {
+	self.quest = new Quest();
+
+	// Connect to Server?
+	self.isConnect = false;
+
+	self.playerUnit = null;
+
+	// All Unit Objects
+	self.units = {};
+
+	// Viewport
+	self.viewport = $('#viewport');
+
+	// Framecount
+	self.frameCount = 0;
+
+	// Bind Quest API Events
+	self.quest.on('connect', function() {
+		self._tryLogin();
+	});
+
+	self.quest.on('close', function() {
+		clearInterval(self.loop);
+		self.isConnect = false;
+	});
+
+	// Unit join the Viewport (Area of Interest)
+	self.quest.on('unitJoin', function(unit) {
+		self._unitJoin(unit);
+	});
+
+	// Unit left the Viewport (Area of Interest)
+	self.quest.on('unitLeft', function(id) {
+		self._unitLeft(id);
+	});
+
+	// Unit has e.g. new Position...
+	self.quest.on('unitUpdate', function(unit) {
+		self._unitUpdate(unit);
+	});
+}
+
+DebugClient.prototype._startLoop = function() {
+	var self = this;
+
+	self.loop = setInterval(function() {
+		self._run();
+	}, 1000/30);
+}
+
+// Simple GameLoop
+DebugClient.prototype._run = function() {
+	var self = this;
+
+	self.frameCount++;
+
+	if (!self.units || self.units.length == 0)
+		return;
+
+	// Update all Units:
+	var keys = Object.keys(self.units);
+
+	for (var i = 0; i < keys.length; i++) {
+		var unit = self.units[keys[i]];
+
+		console.log(unit.name + ": " + unit.velocity);
+
+		if (unit.velocity.x != 0) {
+			unit.pos.x += unit.velocity.x;
+		}
+		if (unit.velocity.y != 0) {
+			unit.pos.y += unit.velocity.y;
+		}
+
+		// Unit is changed:
+		$(unit.gameObject).css({
+			left: unit.pos.x,
+			top: unit.pos.y
+		});
+
+	}
+
+	// Send 3 times the second at Server
+	if (self.frameCount % 10 == 0 && self.playerUnit) {
+		// ToDo: Send to Server Velocity X and Y!!!!
+		self.quest.movement(self.playerUnit.pos, self.playerUnit.direction, self.playerUnit.velocity);
+	}
+
+}
+
+DebugClient.prototype._tryLogin = function() {
+	var self = this;	
+
 	var username = prompt("Please enter your name", "Harry Potter");
 
-	var viewport = $('#viewport');
-
-	quest.login(username, '1234', {w: viewport.width(), h: viewport.height()}, function(code, worldName, worldPlayer, playerId) {
-		console.log(worldName+" say "+code);
+	self.quest.login(username, '1234', {w: $(self.viewport).width(), h: $(self.viewport).height()}, function(code, worldName, worldPlayer, playerId) {
+		console.log(code);
+		// User Feedback
+		if (code == 1) {
+			self.isConnect = true;
+			console.log(worldName+" say Welcome to you");
+			self._startLoop();
+		} else if (code == 2) {
+			alert("Server Full!");
+		} else if (code == 3) {
+			alert("Duplicate Username! Wait 10 Seconds and try it again...");
+			setTimeout(self._tryLogin(), 10000);
+		} else if (code == 4) {
+			alert("Your Username is bad... Wait 10 Seconds and try it again...");
+			setTimeout(self._tryLogin(), 10000);
+		} else if (code == 5) {
+			alert("Go somewhere else to play ...");
+		}
 	});
-});
+}
 
-quest.on('unitJoin', function(unit) {
-	console.log('unitJoin!');
-	// New Unit at Viewport
-	var unitObj = $('<div class="unit"></div>');
-	unitObj.attr('id', 'unit_'+unit.id);
-	unitObj.css({
+// New Unit Join the Viewport from this player.
+DebugClient.prototype._unitJoin = function(unit) {
+	var self = this;
+
+	console.log(unit.name+' joined your Viewport!');
+
+	unit.direction = 0;
+	unit.velocity = {x: 0, y: 0};
+
+	// Create new Player Object
+	var obj = $('<div class="unit"></div>');
+	$(obj).attr('id', 'unit_'+unit.id);
+	// Set Pos
+	$(obj).css({
 		position: 'absolute',
 		left: unit.pos.x,
 		top: unit.pos.y
 	});
-	$('#viewport').append(unitObj);
-});
 
-quest.on('unitLeft', function() {
-	// Unit remove at Viewport
-});
+	unit.gameObject = $(obj);
 
-quest.on('unitUpdate', function(unit) {
-	// ToDo: Interpolate
-	if (unit.id == quest.playerId)
+	self.units[unit.id] = unit;
+
+	// Add to Viewport
+	self.viewport.append(obj);
+
+	// If Unit from this Player?
+	console.log(self.quest.playerId+"=="+unit.id);
+	if (self.quest.playerId == unit.id)
+		self.playerUnit = unit;
+}
+
+DebugClient.prototype._unitLeft = function(id) {
+	var self = this;
+
+	// If Unit exist at the Storage
+	if (self.units.hasOwnProperty(id)) {
+		// Remove GameObject from Viewport
+		$(self.units[id].gameObject).hide(200, function() {
+			$(this).remove();	
+		});
+
+		// Unit remove from Storage
+		delete self.units[id];
+	}
+}
+
+DebugClient.prototype._unitUpdate = function(unit) {
+	var self = this;
+
+	// ToDo: Own Unit override
+	if (unit.id == self.quest.playerId)
 		return;
 
-	// Unit Update
-	$('#unit_'+unit.id).css({
+	// Exist the Unit in the local Storage?
+	if (!self.units.hasOwnProperty(unit.id)) {
+		return;
+	}
+
+	// GameObject update by the Gameloop
+	self.units[unit.id].pos = unit.pos;
+	self.units[unit.id].direction = unit.direction;
+	self.units[unit.id].velocity = unit.velocity;
+
+	// Unit is changed:
+	$(self.units[unit.id].gameObject).css({
 		left: unit.pos.x,
 		top: unit.pos.y
 	});
-	console.log(unit.id);
-});
-
-// Gameloop -> Call Quest API -> Call Server
-var frameCount = 0;
-function gameloop() {
-	frameCount++;
-	var myUnit = $('#unit_'+quest.playerId);
-	// Send 3 times the second at Server
-	if (frameCount % 10 == 0 && myUnit) {
-		quest.movement({x: $(myUnit).css('left').replace("px", ""), y: $(myUnit).css('top').replace("px", "")}, 0, 0);
-	}
 }
-setInterval(gameloop, 1000/30);
 
-// User Movement
-// Only for Debug
+$( document ).ready(function() {
+    console.log( "ready!" );
 
-$("body").keypress(function(event) {
-	// Break if no own Unit
-	if (!quest.playerId)
-		return;
+	var client = new DebugClient();
 
-	if (event.keyCode == 119) {
-		// Up
-		$('#unit_'+quest.playerId).css({top: "-=2"});
-	} else if (event.keyCode == 115) {
-		// Down
-		$('#unit_'+quest.playerId).css({top: "+=2"});
-	}
+	$(document).keydown(function(event) {
+		//console.log(event);
+		// Player has no Unit
+		if (!client.playerUnit) {
+			console.log("Error: No Player Unit!");
+			return;
+		}
 
-	if (event.keyCode == 97) {
-		// Left
-		$('#unit_'+quest.playerId).css({left: "-=2"});
-	} else if (event.keyCode == 100) {
-		// Right
-		$('#unit_'+quest.playerId).css({left: "+=2"});
-	}
-	// keycodes:
-	// 119 = w
-	// 115 = s
-	// 97 = a
-	// 100 = d
+		// Set the velocity
+		if (event.keyCode == 87) {
+			// Up
+			client.playerUnit.velocity.y = -2;
+		} else if (event.keyCode == 83) {
+			// Down
+			client.playerUnit.velocity.y = 2;
+		}
+
+		if (event.keyCode == 65) {
+			// Left
+			client.playerUnit.velocity.x = -2;
+		} else if (event.keyCode == 68) {
+			// Right
+			client.playerUnit.velocity.x = 2;
+		}
+
+	});
+
+	$(document).keyup(function(event) {
+		// Player has no Unit
+		if (!client.playerUnit)
+			return;
+
+		// Set the velocity
+		if (event.keyCode == 87) {
+			// Up
+			client.playerUnit.velocity.y = 0;
+		} else if (event.keyCode == 83) {
+			// Down
+			client.playerUnit.velocity.y = 0;
+		}
+
+		if (event.keyCode == 65) {
+			// Left
+			client.playerUnit.velocity.x = 0;
+		} else if (event.keyCode == 68) {
+			// Right
+			client.playerUnit.velocity.x = 0;
+		}
+
+	});
 });
+
 },{"./lib/quest.js":10}],9:[function(require,module,exports){
 // Web Socket Handling
 
@@ -1456,7 +1622,7 @@ function Quest() {
 
 	// New Unit join Viewport or left Viewport
 	this.Client.on('AoI', function(data) {
-		console.log('AoI!');
+
 		var keys = Object.keys(data.unitJoin);
 		for (var i = 0; i < keys.length; i++) {
 			var unit = data.unitJoin[keys[i]];
@@ -1469,7 +1635,7 @@ function Quest() {
 		keys = Object.keys(data.unitUpdate);
 		for (var o = 0; o < keys.length; o++) {
 			var unit = data.unitUpdate[keys[o]];
-			self.emit('unitUpdate', { id: unit.getId(), pos: {x: unit.posX, y: unit.posY}, direction: unit.direction, velocity: unit.velocity});
+			self.emit('unitUpdate', { id: unit.getId(), pos: {x: unit.getPosX(), y: unit.getPosY()}, direction: unit.getDirection(), velocity: {x: unit.getVelocityX(), y: unit.getVelocityY()}});
 		}
 	});
 
@@ -1493,8 +1659,7 @@ Quest.prototype.login = function(username, password, viewportSize, callback) {
 
 // Send Movement
 Quest.prototype.movement = function(pos, direction, velocity) {
-	console.log({timestamp: Math.floor(Date.now() / 1000), posX: parseInt(pos.x), posY: parseInt(pos.y), direction: direction, velocity: velocity});
-	this.Client.send('UnitMovement', {timestamp: Math.floor(Date.now() / 1000), posX: parseInt(pos.x), posY: parseInt(pos.y), direction: direction, velocity: velocity});
+	this.Client.send('UnitMovement', {timestamp: Math.floor(Date.now() / 1000), posX: parseInt(pos.x), posY: parseInt(pos.y), direction: direction, velocityX: velocity.x, velocityY: velocity.y});
 }
 
 module.exports = Quest;

@@ -41,7 +41,7 @@ World.prototype.init = function(QuestServer, done) {
 	QuestServer.on('client:UnitMovement', function(data) {
 		// Update Unit
 		data.client.unit.pos = {x: data.posX, y: data.posY};
-		Log.info("User `"+data.client.unit.name+"` moved!");
+//		Log.info("User `"+data.client.unit.name+"` moved!");
 		// ToDo: Validate User Input
 	});
 
@@ -167,7 +167,7 @@ World.prototype.update = function(QuestServer, tick) {
 					});
 				}
 
-				updateAoI.units.push({ id: other.id, posX: other.pos.x, posY: other.pos.y, direction: 0, velocity: 0 });
+				updateAoI.units.push({ id: other.id, posX: other.pos.x, posY: other.pos.y, direction: 0, velocityX: 0, velocityY: 0 });
 			} else if (unit.aoi.units.hasOwnProperty(other.id)) {
 				// Out of Viewport
 				leftAoI.units.push(other.id);

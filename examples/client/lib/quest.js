@@ -38,7 +38,7 @@ function Quest() {
 
 	// New Unit join Viewport or left Viewport
 	this.Client.on('AoI', function(data) {
-		console.log('AoI!');
+
 		var keys = Object.keys(data.unitJoin);
 		for (var i = 0; i < keys.length; i++) {
 			var unit = data.unitJoin[keys[i]];
@@ -51,7 +51,7 @@ function Quest() {
 		keys = Object.keys(data.unitUpdate);
 		for (var o = 0; o < keys.length; o++) {
 			var unit = data.unitUpdate[keys[o]];
-			self.emit('unitUpdate', { id: unit.getId(), pos: {x: unit.posX, y: unit.posY}, direction: unit.direction, velocity: unit.velocity});
+			self.emit('unitUpdate', { id: unit.getId(), pos: {x: unit.getPosX(), y: unit.getPosY()}, direction: unit.getDirection(), velocity: {x: unit.getVelocityX(), y: unit.getVelocityY()}});
 		}
 	});
 
@@ -75,8 +75,7 @@ Quest.prototype.login = function(username, password, viewportSize, callback) {
 
 // Send Movement
 Quest.prototype.movement = function(pos, direction, velocity) {
-	console.log({timestamp: Math.floor(Date.now() / 1000), posX: parseInt(pos.x), posY: parseInt(pos.y), direction: direction, velocity: velocity});
-	this.Client.send('UnitMovement', {timestamp: Math.floor(Date.now() / 1000), posX: parseInt(pos.x), posY: parseInt(pos.y), direction: direction, velocity: velocity});
+	this.Client.send('UnitMovement', {timestamp: Math.floor(Date.now() / 1000), posX: parseInt(pos.x), posY: parseInt(pos.y), direction: direction, velocityX: velocity.x, velocityY: velocity.y});
 }
 
 module.exports = Quest;
