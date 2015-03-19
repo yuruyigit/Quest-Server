@@ -3,7 +3,7 @@
 Quest is a multiplayer role play game engine.  This repository contains the server. It is easily extensible through plugins.
 
 
-You may know him from the live coding stream on [livecoding.tv](https://www.livecoding.tv/pkuebler).
+You may know it from the live coding stream on [livecoding.tv](https://www.livecoding.tv/pkuebler).
 
 ## Getting Started
 
@@ -29,9 +29,9 @@ Use the [NPM](https://www.npmjs.com) installer:
 npm install quest-server
 ```
 
-**Note:** The client API is written at the time only for debugging and not used productively.
+**Note:** The client API is currently developed only for debugging purposes and not used in production environment.
 
-The test client may examine the protobuf files in the wrong folder. It runs through [browserify](http://browserify.org). So you can generate a new bundle.js.
+The test client may examine the protobuf files in the wrong folder. It runs through [browserify](http://browserify.org), so you can generate a new bundle.js.
 
 ```bash
 cd /examples/client
@@ -49,7 +49,7 @@ For more information, please see the [documentation](docs/index.md) in the `/doc
 ## Dependencies
 
 ## About InteractiveResearchLabs
-We are a association of indie developers, graphic designers and video creators. We work together on several projects and help each other with it's own projects.
+We are an association of indie developers, graphic designers and video creators. We work together on several projects and help each other with it's own projects.
 
 ## License (MIT and Creative Commans)
 
